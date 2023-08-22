@@ -16,7 +16,6 @@ import (
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/mysql"
 	"github.com/joho/godotenv"
-	"golang.org/x/net/proxy"
 )
 
 type FileUploadStatus struct {
@@ -76,7 +75,7 @@ func main() {
 	var failedUploads []FileUploadStatus
 
 	currentData := 1
-	requestDelay := 2 * time.Second
+	requestDelay := 5 * time.Second
 	for _, file := range data {
 		// Log the column value for debugging
 		log.Printf("File %d/%d | File ID: %d, Drive URL: %s\n", currentData, totalData, file.ID, file.DriveURL)
@@ -102,44 +101,44 @@ func main() {
 }
 
 func saveFileLocally(fileId uint, fileURL, directoryBase, subDirectory, fileNamePrefix string) (string, string, bool) {
-	//response, err := http.Get(fileURL)
-	//if err != nil {
-	//	log.Println("Failed to download "+fileURL+" file:", err)
-	//	return fileURL, "", false
-	//}
-	//defer response.Body.Close()
-
-	proxyAddresses := []string{
-		"109.86.228.165:5678",
-		"197.245.170.6:31518",
-		"178.151.134.232:5678",
-		"195.211.244.190:3629",
-		"85.159.104.220:4153",
-		// Add more proxy addresses as needed
-	}
-	proxyDialer, err := proxy.SOCKS5("tcp", proxyAddresses[0], nil, proxy.Direct)
-	if err != nil {
-		log.Println("Failed to create proxy dialer:", err)
-		return "", "", false
-	}
-
-	// Create a new HTTP transport with the proxy dialer
-	transport := &http.Transport{
-		Dial: proxyDialer.Dial,
-	}
-
-	// Create a new HTTP client with the custom transport
-	httpClient := &http.Client{
-		Transport: transport,
-	}
-
-	// Make the HTTP request using the proxy
-	response, err := httpClient.Get(fileURL)
+	response, err := http.Get(fileURL)
 	if err != nil {
 		log.Println("Failed to download "+fileURL+" file:", err)
 		return fileURL, "", false
 	}
 	defer response.Body.Close()
+
+	//proxyAddresses := []string{
+	//	"109.86.228.165:5678",
+	//	"197.245.170.6:31518",
+	//	"178.151.134.232:5678",
+	//	"195.211.244.190:3629",
+	//	"85.159.104.220:4153",
+	//	// Add more proxy addresses as needed
+	//}
+	//proxyDialer, err := proxy.SOCKS5("tcp", proxyAddresses[0], nil, proxy.Direct)
+	//if err != nil {
+	//	log.Println("Failed to create proxy dialer:", err)
+	//	return "", "", false
+	//}
+	//
+	//// Create a new HTTP transport with the proxy dialer
+	//transport := &http.Transport{
+	//	Dial: proxyDialer.Dial,
+	//}
+	//
+	//// Create a new HTTP client with the custom transport
+	//httpClient := &http.Client{
+	//	Transport: transport,
+	//}
+	//
+	//// Make the HTTP request using the proxy
+	//response, err := httpClient.Get(fileURL)
+	//if err != nil {
+	//	log.Println("Failed to download "+fileURL+" file:", err)
+	//	return fileURL, "", false
+	//}
+	//defer response.Body.Close()
 
 	fileData, err := ioutil.ReadAll(response.Body)
 	if err != nil {

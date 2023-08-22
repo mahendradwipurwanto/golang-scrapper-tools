@@ -171,7 +171,7 @@ func saveFileLocally(fileId uint, fileURL, directoryBase, subDirectory, fileName
 	//check if fileExtension contains .htm
 	if strings.Contains(fileExtension, ".htm") {
 		log.Println(fmt.Sprintf("Failed to get file extension id: %v, cause 403 from gdrive", fileId))
-		return "", "", false
+		panic("Failed to get file extension")
 	}
 
 	log.Println(fileExtension)

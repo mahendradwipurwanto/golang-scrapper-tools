@@ -101,44 +101,36 @@ func main() {
 }
 
 func saveFileLocally(fileId uint, fileURL, directoryBase, subDirectory, fileNamePrefix string) (string, string, bool) {
-	response, err := http.Get(fileURL)
-	if err != nil {
-		log.Println("Failed to download "+fileURL+" file:", err)
-		return fileURL, "", false
-	}
-	defer response.Body.Close()
-
-	//proxyAddresses := []string{
-	//	"109.86.228.165:5678",
-	//	"197.245.170.6:31518",
-	//	"178.151.134.232:5678",
-	//	"195.211.244.190:3629",
-	//	"85.159.104.220:4153",
-	//	// Add more proxy addresses as needed
-	//}
-	//proxyDialer, err := proxy.SOCKS5("tcp", proxyAddresses[0], nil, proxy.Direct)
-	//if err != nil {
-	//	log.Println("Failed to create proxy dialer:", err)
-	//	return "", "", false
-	//}
-	//
-	//// Create a new HTTP transport with the proxy dialer
-	//transport := &http.Transport{
-	//	Dial: proxyDialer.Dial,
-	//}
-	//
-	//// Create a new HTTP client with the custom transport
-	//httpClient := &http.Client{
-	//	Transport: transport,
-	//}
-	//
-	//// Make the HTTP request using the proxy
-	//response, err := httpClient.Get(fileURL)
+	//response, err := http.Get(fileURL)
 	//if err != nil {
 	//	log.Println("Failed to download "+fileURL+" file:", err)
 	//	return fileURL, "", false
 	//}
 	//defer response.Body.Close()
+	//
+	//fileData, err := ioutil.ReadAll(response.Body)
+	//if err != nil {
+	//	log.Println("Failed to read file data:", err)
+	//	return "", "", false
+	//}
+
+	client := &http.Client{}
+
+	req, err := http.NewRequest("GET", fileURL, nil)
+	if err != nil {
+		log.Println("Failed to create request:", err)
+		return fileURL, "", false
+	}
+
+	// Set the User-Agent header
+	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36 Edg/115.0.1901.203")
+
+	response, err := client.Do(req)
+	if err != nil {
+		log.Println("Failed to download "+fileURL+" file:", err)
+		return fileURL, "", false
+	}
+	defer response.Body.Close()
 
 	fileData, err := ioutil.ReadAll(response.Body)
 	if err != nil {

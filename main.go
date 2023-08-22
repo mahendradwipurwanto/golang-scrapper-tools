@@ -64,7 +64,7 @@ func main() {
 	var data []Files
 
 	// Fetch data based on the specific column condition
-	query := fmt.Sprintf("SELECT id, %s, %s FROM %s WHERE %s = '%s' AND %s IS NOT NULL", urlColumnName, fileNameColumnName, tableName, tableWhereColumn, tableWhereValue, fileNameColumnName)
+	query := fmt.Sprintf("SELECT id, %s, %s FROM %s WHERE %s = '%s' AND %s IS NULL", urlColumnName, fileNameColumnName, tableName, tableWhereColumn, tableWhereValue, fileNameColumnName)
 	if err := db.Raw(query).Scan(&data).Error; err != nil {
 		log.Fatal("Failed to retrieve data from database:", err)
 	}

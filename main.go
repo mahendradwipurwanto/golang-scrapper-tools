@@ -11,10 +11,12 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/mysql"
 	"github.com/joho/godotenv"
+	"golang.org/x/net/proxy"
 )
 
 type FileUploadStatus struct {
@@ -25,7 +27,7 @@ type FileUploadStatus struct {
 
 type Files struct {
 	ID       uint
-	DriveURL string `gorm:"column:Content"`
+	DriveURL string `gorm:"column:Foto"`
 	Column   string `gorm:"column:nama_file"`
 }
 
@@ -45,6 +47,7 @@ func main() {
 	tableName := os.Getenv("TABLE_NAME")
 	urlColumnName := os.Getenv("URL_COLUMN_NAME")
 	fileNameColumnName := os.Getenv("FILE_NAME_COLUMN_NAME")
+	rawUrlColumnName := os.Getenv("RAW_URL_COLUMN_NAME")
 	tableWhereColumn := os.Getenv("TABLE_WHERE_COLUMN")
 	tableWhereValue := os.Getenv("TABLE_WHERE_VALUE")
 	directoryBase := os.Getenv("DIRECTORY_BASE")
@@ -60,21 +63,20 @@ func main() {
 	defer db.Close()
 
 	var data []Files
-	var totalData int64
 
 	// Fetch data based on the specific column condition
-	query := fmt.Sprintf("SELECT id, %s, %s FROM %s WHERE %s = '%s' AND %s != '' AND %s != NULL", urlColumnName, fileNameColumnName, tableName, tableWhereColumn, tableWhereValue, urlColumnName, urlColumnName)
+	query := fmt.Sprintf("SELECT id, %s, %s FROM %s WHERE %s = '%s' AND %s IS NOT NULL", urlColumnName, fileNameColumnName, tableName, tableWhereColumn, tableWhereValue, urlColumnName)
 	if err := db.Raw(query).Scan(&data).Error; err != nil {
 		log.Fatal("Failed to retrieve data from database:", err)
 	}
-	if err := db.Raw(query).Count(&totalData).Error; err != nil {
-		log.Fatal("Failed to retrieve total data from database:", err)
-	}
+
+	totalData := len(data)
 
 	var successfulUploads []FileUploadStatus
 	var failedUploads []FileUploadStatus
 
 	currentData := 1
+	requestDelay := 2 * time.Second
 	for _, file := range data {
 		// Log the column value for debugging
 		log.Printf("File %d/%d | File ID: %d, Drive URL: %s\n", currentData, totalData, file.ID, file.DriveURL)
@@ -87,18 +89,52 @@ func main() {
 			db.Table(tableName).Where("id = ?", file.ID).Updates(map[string]interface{}{
 				urlColumnName:      fmt.Sprintf("%s/%s", fileNameHost, newURL),
 				fileNameColumnName: newFileName,
+				rawUrlColumnName:   file.DriveURL,
 			})
 		} else {
 			failedUploads = append(failedUploads, FileUploadStatus{ID: file.ID, URL: file.DriveURL, Status: "failed"})
 		}
 		currentData = currentData + 1
+		time.Sleep(requestDelay)
 	}
 
 	logResults(successfulUploads, failedUploads)
 }
 
 func saveFileLocally(fileId uint, fileURL, directoryBase, subDirectory, fileNamePrefix string) (string, string, bool) {
-	response, err := http.Get(fileURL)
+	//response, err := http.Get(fileURL)
+	//if err != nil {
+	//	log.Println("Failed to download "+fileURL+" file:", err)
+	//	return fileURL, "", false
+	//}
+	//defer response.Body.Close()
+
+	proxyAddresses := []string{
+		"109.86.228.165:5678",
+		"197.245.170.6:31518",
+		"178.151.134.232:5678",
+		"195.211.244.190:3629",
+		"85.159.104.220:4153",
+		// Add more proxy addresses as needed
+	}
+	proxyDialer, err := proxy.SOCKS5("tcp", proxyAddresses[0], nil, proxy.Direct)
+	if err != nil {
+		log.Println("Failed to create proxy dialer:", err)
+		return "", "", false
+	}
+
+	// Create a new HTTP transport with the proxy dialer
+	transport := &http.Transport{
+		Dial: proxyDialer.Dial,
+	}
+
+	// Create a new HTTP client with the custom transport
+	httpClient := &http.Client{
+		Transport: transport,
+	}
+
+	// Make the HTTP request using the proxy
+	response, err := httpClient.Get(fileURL)
 	if err != nil {
 		log.Println("Failed to download "+fileURL+" file:", err)
 		return fileURL, "", false
@@ -140,7 +176,7 @@ func saveFileLocally(fileId uint, fileURL, directoryBase, subDirectory, fileName
 	localFilePath := fmt.Sprintf("%s/%s/%s", directoryBase, subDirectory, localFileName)
 	localFilePath = strings.ReplaceAll(localFilePath, "//", "/")
 	// Create the subdirectories if they don't exist
-	if err := os.MkdirAll(fmt.Sprintf("%s/%s", directoryBase, subDirectory), os.ModePerm); err != nil {
+	if err := os.MkdirAll(fmt.Sprintf("%s", directoryBase), os.ModePerm); err != nil {
 		log.Println("Failed to create subdirectories:", err)
 		return "", "", false
 	}

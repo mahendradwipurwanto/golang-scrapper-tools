@@ -101,19 +101,6 @@ func main() {
 }
 
 func saveFileLocally(fileId uint, fileURL, directoryBase, subDirectory, fileNamePrefix string) (string, string, bool) {
-	//response, err := http.Get(fileURL)
-	//if err != nil {
-	//	log.Println("Failed to download "+fileURL+" file:", err)
-	//	return fileURL, "", false
-	//}
-	//defer response.Body.Close()
-	//
-	//fileData, err := ioutil.ReadAll(response.Body)
-	//if err != nil {
-	//	log.Println("Failed to read file data:", err)
-	//	return "", "", false
-	//}
-
 	client := &http.Client{}
 
 	req, err := http.NewRequest("GET", fileURL, nil)

@@ -26,7 +26,7 @@ type FileUploadStatus struct {
 
 type Files struct {
 	ID       uint
-	DriveURL string `gorm:"column:Foto"`
+	DriveURL string `gorm:"column:Photo"`
 	Column   string `gorm:"column:nama_file"`
 }
 
@@ -47,8 +47,8 @@ func main() {
 	urlColumnName := os.Getenv("URL_COLUMN_NAME")
 	fileNameColumnName := os.Getenv("FILE_NAME_COLUMN_NAME")
 	rawUrlColumnName := os.Getenv("RAW_URL_COLUMN_NAME")
-	tableWhereColumn := os.Getenv("TABLE_WHERE_COLUMN")
-	tableWhereValue := os.Getenv("TABLE_WHERE_VALUE")
+	//tableWhereColumn := os.Getenv("TABLE_WHERE_COLUMN")
+	//tableWhereValue := os.Getenv("TABLE_WHERE_VALUE")
 	directoryBase := os.Getenv("DIRECTORY_BASE")
 	fileNameHost := os.Getenv("FILE_NAME_HOST")
 	fileNamePrefix := os.Getenv("FILE_NAME_PREFIX")
@@ -64,7 +64,11 @@ func main() {
 	var data []Files
 
 	// Fetch data based on the specific column condition
-	query := fmt.Sprintf("SELECT id, %s, %s FROM %s WHERE %s = '%s' AND %s IS NULL", urlColumnName, fileNameColumnName, tableName, tableWhereColumn, tableWhereValue, fileNameColumnName)
+	//query := fmt.Sprintf("SELECT id, %s, %s FROM %s WHERE %s = '%s' AND %s != '' AND %s IS NULL", urlColumnName, fileNameColumnName, tableName, tableWhereColumn, tableWhereValue, urlColumnName, fileNameColumnName)
+	query := fmt.Sprintf("SELECT id, %s, %s FROM %s WHERE %s != '' AND %s IS NULL", urlColumnName, fileNameColumnName, tableName, urlColumnName, fileNameColumnName)
+
+	log.Println("Running Query", query)
+
 	if err := db.Raw(query).Scan(&data).Error; err != nil {
 		log.Fatal("Failed to retrieve data from database:", err)
 	}
@@ -149,9 +153,13 @@ func saveFileLocally(fileId uint, fileURL, directoryBase, subDirectory, fileName
 
 	//check if fileExtension contains .htm
 	if strings.Contains(fileExtension, ".htm") {
-		log.Println(fmt.Sprintf("Failed to get file extension id: %v, cause %d", fileId, response.StatusCode))
-		log.Println(response)
-		panic("Failed to get file extension")
+		if response.StatusCode != 404 {
+			log.Println(fmt.Sprintf("Failed to get file extension id: %v, cause %d", fileId, response.StatusCode))
+			log.Println(response)
+			panic("Failed to get file extension")
+		}
+		log.Println(fmt.Sprintf("File not found id: %v, status %d", fileId, response.StatusCode))
+		return "", "", false
 	}
 
 	log.Println(fileExtension)

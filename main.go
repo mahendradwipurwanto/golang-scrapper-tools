@@ -137,7 +137,7 @@ func saveFileLocally(fileId uint, fileURL, directoryBase, subDirectory, fileName
 		fileExtensions, err := mime.ExtensionsByType(contentType)
 		if err != nil || len(fileExtensions) == 0 {
 			log.Println("Failed to determine file extension from Content-Type:", err)
-			fileExtensions = []string{".unknown"} // Default to ".unknown" extension
+			fileExtensions = []string{".htm"} // Default to ".unknown" extension
 		}
 
 		// Extract the extension (without the square brackets)
